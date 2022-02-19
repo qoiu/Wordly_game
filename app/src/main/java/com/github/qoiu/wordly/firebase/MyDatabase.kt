@@ -8,12 +8,16 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.lang.Exception
 
 interface MyDatabase {
 
-    suspend fun<T> addListener(
+    suspend fun <T> addListener(
         referenceName: String,
+        mapper: Mapper.Data<DataSnapshot, DbResponse.Success<T>>,
+        communication: Communication<DbResponse>
+    )
+
+    suspend fun <T> word(
         mapper: Mapper.Data<DataSnapshot, DbResponse.Success<T>>,
         communication: Communication<DbResponse>
     )
@@ -26,7 +30,7 @@ interface MyDatabase {
             FirebaseDatabase.getInstance(DB_URL)
         }
 
-        override suspend fun<T> addListener(
+        override suspend fun <T> addListener(
             referenceName: String,
             mapper: Mapper.Data<DataSnapshot, DbResponse.Success<T>>,
             communication: Communication<DbResponse>
@@ -43,20 +47,28 @@ interface MyDatabase {
                             throw IllegalStateException("Canceled: ${error.message}")
                         }
                     })
-            } catch (e: Exception){
+            } catch (e: Exception) {
                 communication.provide(DbResponse.Error(e))
             }
-
         }
 
+        override suspend fun <T> word(
+            mapper: Mapper.Data<DataSnapshot, DbResponse.Success<T>>,
+            communication: Communication<DbResponse>
+        ) {
+            val task = database.getReference("words").get()
+            task.addOnSuccessListener {
+                communication.provide(mapper.map(it))
+            }
+        }
 
-        override suspend fun modify(player: Player){
+        override suspend fun modify(player: Player) {
             val ref = database.getReference(DB_PLAYERS).child("$DB_PLAYER ${player.id}")
             ref.child("id").setValue(player.id)
             ref.child("score").setValue(player.score)
         }
 
-        override suspend fun remove(player: Player){
+        override suspend fun remove(player: Player) {
             val ref = database.getReference(DB_PLAYERS).child("$DB_PLAYER ${player.id}")
             ref.removeValue()
         }

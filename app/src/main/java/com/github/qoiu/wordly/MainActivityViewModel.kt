@@ -10,20 +10,31 @@ import kotlinx.coroutines.launch
 
 class MainActivityViewModel : ViewModel() {
 
-    private val database by lazy { MyDatabase.Base()}
-    private val data = PlayerCommunication()
+    private val database by lazy { MyDatabase.Base() }
+    private val data = Communication.Base<DbResponse>()
+    private val words = Communication.Base<DbResponse>()
 
-    fun init(owner: LifecycleOwner,observer: Observer<DbResponse>) {
-        data.observe(owner,observer)
+    fun observeWords(owner: LifecycleOwner, observer: Observer<DbResponse>) {
+        words.observe(owner, observer)
+    }
 
+    fun init(owner: LifecycleOwner, observer: Observer<DbResponse>) {
+        data.observe(owner, observer)
         viewModelScope.launch(Dispatchers.IO) {
             database.addListener("players", SnapshotToPlayersMapper(), data)
         }
     }
 
+
+    fun getWord() {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.word(SnapshotToWordMapper(), words)
+        }
+    }
+
     fun addValue() {
         viewModelScope.launch(Dispatchers.IO) {
-            database.modify(Player(2,125))
+            database.modify(Player(2, 125))
         }
     }
 }
